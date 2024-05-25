@@ -1,22 +1,17 @@
 import json
 import boto3
-import os
-import sys
-import uuid
 from urllib.parse import unquote_plus
 import numpy as np
 import time
 import cv2
-import os
-#from flask import Flask, request, jsonify
-#import uuid
-import base64
+from io import BytesIO
 
 
 s3_client = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
 TABLE_NAME = 'image_info'
 s3_config_bucket = 'ass3configfiles'
+s3_thumbnail_bucket = 'ass3thumbnailbucket'
 labels_path = 'coco.names'
 weights_path = 'yolov3-tiny.weights'
 config_path = 'yolov3-tiny.cfg'
@@ -27,7 +22,7 @@ nmsthres = 0.1
 
 def get_labels(s3_config_bucket, labels_path):
     # Get the object from S3
-    response = s3.get_object(Bucket=s3_config_bucket, Key=labels_path)
+    response = s3_client.get_object(Bucket=s3_config_bucket, Key=labels_path)
     # Read the content of the file
     content = response['Body'].read().decode('utf-8')
     # Split the content into labels
@@ -37,14 +32,14 @@ def get_labels(s3_config_bucket, labels_path):
 def get_weights(weights_path):
     temp_file_path = '/tmp/yolov3-tiny.weights'
     # Download the weights file from S3
-    s3.download_file(s3_config_bucket, weights_path, temp_file_path)
+    s3_client.download_file(s3_config_bucket, weights_path, temp_file_path)
     return temp_file_path
 
 def get_config(config_path):
     # Temporary file path to store the downloaded file
     temp_file_path = '/tmp/yolov3-tiny.cfg'
     # Download the config file from S3
-    s3.download_file(s3_config_bucket, config_path, temp_file_path)
+    s3_client.download_file(s3_config_bucket, config_path, temp_file_path)
     return temp_file_path
 
 def load_model(configpath,weightspath):
@@ -144,7 +139,23 @@ def do_prediction(image,net,LABELS):
 # Lables=get_labels(s3_config_bucket, labels_path)
 # CFG=get_config(config_path)
 # Weights=get_weights(weights_path)
+def create_thumbnail(image, thumbnail_size=(150,150)):
+    # Get the dimensions of the image
+    original_height, original_width = image.shape[:2]
+    # Calculate the aspect ratio
+    aspect_ratio = original_width / original_height
+    # Determine the new dimensions based on the desired thumbnail size while maintaining the aspect ratio
+    if original_width > original_height:
+        new_width = thumbnail_size[0]
+        new_height = int(new_width / aspect_ratio)
+    else:
+        new_height = thumbnail_size[1]
+        new_width = int(new_height * aspect_ratio)
     
+    # Resize the image
+    thumbnail = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    return thumbnail
+
 def lambda_handler(event, context):
    Lables=get_labels(s3_config_bucket, labels_path)
    CFG=get_config(config_path)
@@ -152,13 +163,21 @@ def lambda_handler(event, context):
    for record in event['Records']:
        bucket = record['s3']['bucket']['name']
        key = unquote_plus(record['s3']['object']['key'])
-       s3_url = f"s3://{bucket}/{key}"
+       #https://ass3thumbnailbucket.s3.amazonaws.com/000000558413_thumbnail.jpg
+       s3_url = f"https://{bucket}.s3.amazonaws.com/{key}"
        print("File {0} uploaded to {1} bucket".format(key, bucket))
        image_response = s3_client.get_object(Bucket=bucket, Key=key)
        image_content = image_response['Body'].read()
        # Convert the image content to an array that OpenCV can work with
        nparr = np.frombuffer(image_content, np.uint8)
        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+       thumbnail = create_thumbnail(image)
+       _, buffer = cv2.imencode('.jpg', thumbnail)
+       io_buffer = BytesIO(buffer)
+       thumbnail_key = key.split('.')[0] + "_thumbnail.jpg"
+       s3_client.upload_fileobj(io_buffer, s3_thumbnail_bucket, thumbnail_key)
+       thumbnail_url = f"https://{s3_thumbnail_bucket}.s3.amazonaws.com/{thumbnail_key}"
+       print(f"Thumbnail uploaded to s3://{s3_thumbnail_bucket}/{thumbnail_key}")
        # Convert the image from BGR to RGB
        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
        # Load the model
@@ -169,7 +188,8 @@ def lambda_handler(event, context):
             TableName=TABLE_NAME,
             Item={
                 's3_url': {'S': s3_url},
-                'tags': {'L': [{'S': str(item)} for item in result]}
+                'tags': {'L': [{'S': str(item)} for item in result]},
+                'thumbnail_url': {'S': thumbnail_url}
             }
         )
 
