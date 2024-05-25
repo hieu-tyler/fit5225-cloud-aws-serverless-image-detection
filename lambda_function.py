@@ -6,7 +6,7 @@ import time
 import cv2
 from io import BytesIO
 
-
+# Configuration variable
 s3_client = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
 TABLE_NAME = "image_info"
@@ -16,10 +16,9 @@ labels_path = "coco.names"
 weights_path = "yolov3-tiny.weights"
 config_path = "yolov3-tiny.cfg"
 
-# construct the argument parse and parse the arguments
+# Construct the argument parse and parse the arguments
 confthres = 0.6
 nmsthres = 0.1
-
 
 def get_labels(s3_config_bucket, labels_path):
     # Get the object from S3
@@ -126,6 +125,16 @@ def do_prediction(image, net, LABELS):
     return detected_labels
 
 def create_thumbnail(image, thumbnail_size=(150, 150)):
+    """Create thumbnail from the provided image
+
+
+    Args:
+        image (list): 2 dimension image
+        thumbnail_size (tuple, optional): The thumbnail size for web application. Defaults to (150, 150).
+
+    Returns:
+        image(list): thumbnail with rescale from image
+    """
     # Get the dimensions of the image
     original_height, original_width = image.shape[:2]
     # Calculate the aspect ratio
@@ -144,32 +153,53 @@ def create_thumbnail(image, thumbnail_size=(150, 150)):
 
 
 def lambda_handler(event, context):
+    """Lambda Handler
+
+    Args:
+        event (Event): event from lambda function
+        context (Context): extra context passed by lambda function
+
+    Returns:
+        _type_: _description_
+    """
     Lables = get_labels(s3_config_bucket, labels_path)
     CFG = get_config(config_path)
     Weights = get_weights(weights_path)
     for record in event["Records"]:
+        # Prepare buket name, key and s3 URL
         bucket = record["s3"]["bucket"]["name"]
         key = unquote_plus(record["s3"]["object"]["key"])
         s3_url = f"https://{bucket}.s3.amazonaws.com/{key}"
+
         print("File {0} uploaded to {1} bucket".format(key, bucket))
+        
+        # Get the image content
         image_response = s3_client.get_object(Bucket=bucket, Key=key)
         image_content = image_response["Body"].read()
+
         # Convert the image content to an array that OpenCV can work with
         nparr = np.frombuffer(image_content, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        # Create thumbnail
         thumbnail = create_thumbnail(image)
         _, buffer = cv2.imencode(".jpg", thumbnail)
         io_buffer = BytesIO(buffer)
         thumbnail_key = key.split(".")[0] + "_thumbnail.jpg"
+        
+        # Upload the image to DynamoDB
         s3_client.upload_fileobj(io_buffer, s3_thumbnail_bucket, thumbnail_key)
         thumbnail_url = (
             f"https://{s3_thumbnail_bucket}.s3.amazonaws.com/{thumbnail_key}"
         )
         print(f"Thumbnail uploaded to s3://{s3_thumbnail_bucket}/{thumbnail_key}")
+
         # Convert the image from BGR to RGB
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
         # Load the model
         nets = load_model(CFG, Weights)
+        
         # Perform prediction
         result = do_prediction(image, nets, Lables)
         response = dynamodb.put_item(
