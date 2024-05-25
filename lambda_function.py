@@ -27,7 +27,7 @@ nmsthres = 0.1
 
 def get_labels(s3_config_bucket, labels_path):
     # Get the object from S3
-    response = s3.get_object(Bucket=s3_config_bucket, Key=labels_path)
+    response = s3_client.get_object(Bucket=s3_config_bucket, Key=labels_path)
     # Read the content of the file
     content = response['Body'].read().decode('utf-8')
     # Split the content into labels
@@ -37,14 +37,14 @@ def get_labels(s3_config_bucket, labels_path):
 def get_weights(weights_path):
     temp_file_path = '/tmp/yolov3-tiny.weights'
     # Download the weights file from S3
-    s3.download_file(s3_config_bucket, weights_path, temp_file_path)
+    s3_client.download_file(s3_config_bucket, weights_path, temp_file_path)
     return temp_file_path
 
 def get_config(config_path):
     # Temporary file path to store the downloaded file
     temp_file_path = '/tmp/yolov3-tiny.cfg'
     # Download the config file from S3
-    s3.download_file(s3_config_bucket, config_path, temp_file_path)
+    s3_client.download_file(s3_config_bucket, config_path, temp_file_path)
     return temp_file_path
 
 def load_model(configpath,weightspath):
