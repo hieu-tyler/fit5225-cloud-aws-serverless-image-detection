@@ -1,1 +1,2 @@
-boto3
+numpy==1.22.0
+opencv-python-headless
