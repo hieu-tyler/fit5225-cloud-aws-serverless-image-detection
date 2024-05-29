@@ -10,8 +10,8 @@ from io import BytesIO
 s3_client = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
 TABLE_NAME = "image_info"
-s3_config_bucket = "ass3configfiles"
-s3_thumbnail_bucket = "ass3thumbnailbucket"
+s3_config_bucket = "ass3configfiles-m"
+s3_thumbnail_bucket = "ass3thumbnailbucket-m"
 labels_path = "coco.names"
 weights_path = "yolov3-tiny.weights"
 config_path = "yolov3-tiny.cfg"
@@ -206,7 +206,7 @@ def lambda_handler(event, context):
             TableName=TABLE_NAME,
             Item={
                 "s3_url": {"S": s3_url},
-                "tags": {"L": [{"S": str(item)} for item in result]},
+                "tags": {"L": [{"S": str(item).replace('\r', '')} for item in result]},
                 "thumbnail_url": {"S": thumbnail_url},
             },
         )

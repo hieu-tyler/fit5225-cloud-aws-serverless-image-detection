@@ -1,0 +1,5 @@
+bin/*
+cv2/*
+numpy/*
+opencv_python_headless-4.7.0.72.dist-info/*
+opencv_python_headless.libs/*
