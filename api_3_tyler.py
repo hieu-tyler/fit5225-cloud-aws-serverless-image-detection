@@ -4,6 +4,7 @@ from urllib.parse import unquote_plus
 import numpy as np
 import time
 import cv2
+import base64
 from io import BytesIO
 
 # Configuration variable
@@ -12,6 +13,7 @@ dynamodb = boto3.client("dynamodb")
 TABLE_NAME = "image_info"
 s3_config_bucket = "ass3configfiles-m"
 s3_thumbnail_bucket = "ass3thumbnailbucket-m"
+s3_imageupload = "ass3imageupload-m"
 labels_path = "coco.names"
 weights_path = "yolov3-tiny.weights"
 config_path = "yolov3-tiny.cfg"
@@ -165,35 +167,13 @@ def lambda_handler(event, context):
     Lables = get_labels(s3_config_bucket, labels_path)
     CFG = get_config(config_path)
     Weights = get_weights(weights_path)
-    for record in event["Records"]:
-        # Prepare buket name, key and s3 URL
-        bucket = record["s3"]["bucket"]["name"]
-        key = unquote_plus(record["s3"]["object"]["key"])
-        s3_url = f"https://{bucket}.s3.amazonaws.com/{key}"
 
-        print("File {0} uploaded to {1} bucket".format(key, bucket))
-        
-        # Get the image content
-        image_response = s3_client.get_object(Bucket=bucket, Key=key)
-        image_content = image_response["Body"].read()
-
-        # Convert the image content to an array that OpenCV can work with
-        nparr = np.frombuffer(image_content, np.uint8)
+    image_base64 = event.get('image')
+    if image_base64:
+        image_data = base64.b64decode(image_base64)
+        nparr = np.frombuffer(image_data, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        # Create thumbnail
-        thumbnail = create_thumbnail(image)
-        _, buffer = cv2.imencode(".jpg", thumbnail)
-        io_buffer = BytesIO(buffer)
-        thumbnail_key = key.split(".")[0] + "_thumbnail.jpg"
         
-        # Upload the image to DynamoDB
-        s3_client.upload_fileobj(io_buffer, s3_thumbnail_bucket, thumbnail_key)
-        thumbnail_url = (
-            f"https://{s3_thumbnail_bucket}.s3.amazonaws.com/{thumbnail_key}"
-        )
-        print(f"Thumbnail uploaded to s3://{s3_thumbnail_bucket}/{thumbnail_key}")
-
         # Convert the image from BGR to RGB
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -202,16 +182,29 @@ def lambda_handler(event, context):
         
         # Perform prediction
         result = do_prediction(image, nets, Lables)
-        response = dynamodb.put_item(
-            TableName=TABLE_NAME,
-            Item={
-                "s3_url": {"S": s3_url},
-                "tags": {"L": [{"S": str(item).replace('\r', '')} for item in result]},
-                "thumbnail_url": {"S": thumbnail_url},
-            },
-        )
+        
+        # Obtain tag
+        found_tags = [str(item) for item in result]
+        
+        # Get S3 object
+        dynamodb_client = boto3.client('dynamodb')
+        response = dynamodb_client.scan(TableName=TABLE_NAME)
 
+        items = response.get('Items', [])
+        found_s3_thumbnail = []
+        for item in items:
+            found_tag_set = set(found_tags)
+            dynamodb_tags = item.get('tags')
+            if dynamodb_tags:
+                dynamodb_tags = dynamodb_tags.get('L')
+                dynamodb_tags = [tag_dict.get('S') for tag_dict in dynamodb_tags]
+            s3_thumbnail_url = item.get('thumbnail_url')
+            print(set(dynamodb_tags), set(found_tag_set))
+            if set(dynamodb_tags).intersection(found_tag_set) and s3_thumbnail_url:
+                found_s3_thumbnail.append(s3_thumbnail_url.get('S'))
     return {
         "statusCode": 200,
-        "body": json.dumps("Records successfully inserted into database..."),
+        "body": json.dumps({
+            "found_thumbnail": found_s3_thumbnail,
+        }),
     }
