@@ -11,7 +11,7 @@ exports.handler = async (event, context, callback) => {
   const headers = { "Content-Type": "application/json" };
   const tableName = "image_info";
   const s3ImageBucket = "ass3imageupload";
-  const s3ThumbnailBucket = "ass3thumbnailbucketpixtag";
+  const s3ThumbnailBucket = "ass3thumbnailbucket";
 
   try {
     switch (event.httpMethod) {
@@ -81,6 +81,56 @@ exports.handler = async (event, context, callback) => {
             }
           }
           body = { message: "Images and thumbnails deleted successfully" };
+        } else {
+          statusCode = "400";
+          body = { error: "No body provided" };
+        }
+        break;
+
+      case "BULK TAG":
+        if (event.body) {
+          const requestBody = JSON.parse(event.body);
+          const thumbnailUrls = requestBody.url;
+          const type = requestBody.type; // 1 for add, 0 for remove
+          const tags = requestBody.tags;
+
+          for (let thumbnailUrl of thumbnailUrls) {
+            // Query DynamoDB to get the item for each thumbnail URL
+            let params = {
+              TableName: tableName,
+              FilterExpression: "thumbnail_url = :thumbnail_url",
+              ExpressionAttributeValues: {
+                ":thumbnail_url": thumbnailUrl,
+              },
+            };
+            const response = await dynamo.scan(params).promise();
+            const items = response.Items;
+
+            for (let item of items) {
+              let updateExpression = "";
+              let expressionAttributeValues = {};
+
+              if (type === 1) {
+                // Add tags
+                updateExpression = "ADD tags :tags";
+                expressionAttributeValues[":tags"] = dynamo.createSet(tags);
+              } else if (type === 0) {
+                // Remove tags
+                updateExpression = "DELETE tags :tags";
+                expressionAttributeValues[":tags"] = dynamo.createSet(tags);
+              }
+
+              // Update the item in DynamoDB
+              const updateParams = {
+                TableName: tableName,
+                Key: { "thumbnail_url": thumbnailUrl },
+                UpdateExpression: updateExpression,
+                ExpressionAttributeValues: expressionAttributeValues,
+              };
+              await dynamo.update(updateParams).promise();
+            }
+          }
+          body = { message: `Tags ${type === 1 ? "added" : "removed"} successfully` };
         } else {
           statusCode = "400";
           body = { error: "No body provided" };
