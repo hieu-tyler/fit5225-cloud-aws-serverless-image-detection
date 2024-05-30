@@ -108,7 +108,6 @@ exports.handler = async (event, context, callback) => {
 
             for (let item of items) {
               let updateExpression = "";
-              let expressionAttributeNames = {};
               let expressionAttributeValues = {};
 
               if (type === 1) {
@@ -126,7 +125,6 @@ exports.handler = async (event, context, callback) => {
                 TableName: tableName,
                 Key: { "thumbnail_url": thumbnailUrl },
                 UpdateExpression: updateExpression,
-                ExpressionAttributeNames: expressionAttributeNames,
                 ExpressionAttributeValues: expressionAttributeValues,
               };
               await dynamo.update(updateParams).promise();
