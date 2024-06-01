@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PixTag</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <style>
+        .sidebar {
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: black;
+            padding: 16px;
+            text-decoration: none;
+        }
+
+        .sidebar a:hover {
+            background-color: #ddd;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="sidebar">
+            <a href="#" @click="showSection('section1')">Section 1</a>
+            <a href="#" @click="showSection('section2')">Section 2</a>
+            <a href="#" @click="showSection('section3')">Section 3</a>
+            <a href="#" @click="showSection('section4')">Section 4</a>
+            <a href="#" @click="showSection('section5')">Section 5</a>
+        </div>
+        <div class="content">
+            <div v-show="activeSection === 'section1'">
+                <h1>Section 1</h1>
+                <p>This is the content for section 1.</p>
+            </div>
+            <div v-show="activeSection === 'section2'">
+                <h1>Section 2</h1>
+                <p>This is the content for section 2.</p>
+            </div>
+            <div v-show="activeSection === 'section3'">
+                <h1>Section 3</h1>
+                <p>This is the content for section 3.</p>
+            </div>
+            <div v-show="activeSection === 'section4'">
+                <h1>Section 4</h1>
+                <p>This is the content for section 4.</p>
+            </div>
+            <div v-show="activeSection === 'section5'">
+                <h1>Section 5</h1>
+                <p>This is the content for section 5.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                activeSection: 'section1'
+            },
+            methods: {
+                showSection(section) {
+                    this.activeSection = section;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
