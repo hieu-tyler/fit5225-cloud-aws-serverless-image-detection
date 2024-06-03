@@ -9,12 +9,14 @@ from io import BytesIO
 # Configuration variable
 s3_client = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
-TABLE_NAME = "image_info"
-s3_config_bucket = "ass3configfiles-m"
-s3_thumbnail_bucket = "ass3thumbnailbucket-m"
+sns_client = boto3.client("sns")
+TABLE_NAME = "pixtag_image_info"
+s3_config_bucket = "pixtagconfigfiles"
+s3_thumbnail_bucket = "pixtagthumbnailbucket"
 labels_path = "coco.names"
 weights_path = "yolov3-tiny.weights"
 config_path = "yolov3-tiny.cfg"
+sns_topic_arn = "arn:aws:sns:ap-southeast-2:756624415062:PixTagNotifications"
 
 # Construct the argument parse and parse the arguments
 confthres = 0.6
@@ -169,7 +171,7 @@ def lambda_handler(event, context):
         # Prepare buket name, key and s3 URL
         bucket = record["s3"]["bucket"]["name"]
         key = unquote_plus(record["s3"]["object"]["key"])
-        s3_url = f"https://{bucket}.s3.amazonaws.com/{key}"
+        s3_url = f"https://{bucket}.s3.ap-southeast-2.amazonaws.com/{key}"
 
         print("File {0} uploaded to {1} bucket".format(key, bucket))
         
@@ -190,7 +192,7 @@ def lambda_handler(event, context):
         # Upload the image to DynamoDB
         s3_client.upload_fileobj(io_buffer, s3_thumbnail_bucket, thumbnail_key)
         thumbnail_url = (
-            f"https://{s3_thumbnail_bucket}.s3.amazonaws.com/{thumbnail_key}"
+            f"https://{s3_thumbnail_bucket}.s3.ap-southeast-2.amazonaws.com/{thumbnail_key}"
         )
         print(f"Thumbnail uploaded to s3://{s3_thumbnail_bucket}/{thumbnail_key}")
 
@@ -206,10 +208,29 @@ def lambda_handler(event, context):
             TableName=TABLE_NAME,
             Item={
                 "s3_url": {"S": s3_url},
-                "tags": {"L": [{"S": str(item).replace('\r', '')} for item in result]},
+                #"tags": {"SS": [str(item) for item in result]},
+                "tags": {"L": [{'S': str(item)} for item in result]},
                 "thumbnail_url": {"S": thumbnail_url},
             },
         )
+        message = {
+    "default": f"Image {s3_url} added",
+    "email": f"Image {s3_url} has been added with tags {', '.join(result)}"
+}
+        sns_response = sns_client.publish(
+    TopicArn=sns_topic_arn,
+    Message=json.dumps(message),
+    Subject="New Image Uploaded with Tags",
+    MessageStructure='json',
+    MessageAttributes={
+        'tags': {
+            'DataType': 'String.Array',
+            'StringValue': json.dumps(result)
+        }
+    }
+)
+
+       
 
     return {
         "statusCode": 200,
