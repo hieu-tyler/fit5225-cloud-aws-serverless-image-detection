@@ -10,10 +10,10 @@ from io import BytesIO
 # Configuration variable
 s3_client = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
-TABLE_NAME = "image_info"
-s3_config_bucket = "ass3configfiles-m"
-s3_thumbnail_bucket = "ass3thumbnailbucket-m"
-s3_imageupload = "ass3imageupload-m"
+TABLE_NAME = "pixtag_image_info"
+s3_config_bucket = "pixtagconfigfiles"
+s3_thumbnail_bucket = "pixtagthumbnailbucket"
+s3_imageupload = "pixtagimageupload"
 labels_path = "coco.names"
 weights_path = "yolov3-tiny.weights"
 config_path = "yolov3-tiny.cfg"
