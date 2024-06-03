@@ -1,0 +1,86 @@
+{
+  "providers": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-pixtag-staging-48a71-authRole",
+      "UnauthRoleArn": "arn:aws:iam::756624415062:role/amplify-pixtag-staging-48a71-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::756624415062:role/amplify-pixtag-staging-48a71-authRole",
+      "Region": "ap-southeast-2",
+      "DeploymentBucketName": "amplify-pixtag-staging-48a71-deployment",
+      "UnauthRoleName": "amplify-pixtag-staging-48a71-unauthRole",
+      "StackName": "amplify-pixtag-staging-48a71",
+      "StackId": "arn:aws:cloudformation:ap-southeast-2:756624415062:stack/amplify-pixtag-staging-48a71/431bef50-1fc4-11ef-9b54-0a371fcd2c3b",
+      "AmplifyAppId": "dvevuhpe04me2"
+    }
+  },
+  "auth": {
+    "pixtag": {
+      "service": "Cognito",
+      "serviceType": "imported",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [],
+      "customAuth": false,
+      "output": {
+        "UserPoolId": "ap-southeast-2_KXNCeFb2V",
+        "UserPoolName": "pixtag-user-pool",
+        "AppClientID": "4v5eal374d2u2enc7oknv8l3kr",
+        "AppClientIDWeb": "4v5eal374d2u2enc7oknv8l3kr",
+        "HostedUIDomain": "pixtag-25"
+      },
+      "frontendAuthConfig": {
+        "socialProviders": [],
+        "usernameAttributes": [
+          "EMAIL"
+        ],
+        "signupAttributes": [
+          "PHONE_NUMBER",
+          "EMAIL"
+        ],
+        "passwordProtectionSettings": {
+          "passwordPolicyMinLength": 8,
+          "passwordPolicyCharacters": [
+            "REQUIRES_LOWERCASE",
+            "REQUIRES_UPPERCASE",
+            "REQUIRES_NUMBERS",
+            "REQUIRES_SYMBOLS"
+          ]
+        },
+        "mfaConfiguration": "OPTIONAL",
+        "mfaTypes": [
+          "TOTP"
+        ],
+        "verificationMechanisms": [
+          "EMAIL"
+        ]
+      },
+      "lastPushTimeStamp": "2024-06-01T03:49:31.729Z"
+    }
+  },
+  "function": {
+    "pixtagamplifylambda": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda",
+      "lastBuildTimeStamp": "2024-06-02T08:47:18.430Z",
+      "lastBuildType": "PROD",
+      "lastPackageTimeStamp": "2024-06-02T08:47:18.494Z",
+      "distZipFilename": "pixtagamplifylambda-56785152592b3977576b-build.zip",
+      "s3Bucket": {
+        "deploymentBucketName": "amplify-pixtag-staging-48a71-deployment",
+        "s3Key": "amplify-builds/pixtagamplifylambda-56785152592b3977576b-build.zip"
+      },
+      "providerMetadata": {
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-pixtag-staging-48a71-deployment/amplify-cfn-templates/function/pixtagamplifylambda-cloudformation-template.json",
+        "logicalId": "functionpixtagamplifylambda"
+      },
+      "lastPushTimeStamp": "2024-06-02T08:49:02.553Z",
+      "output": {
+        "LambdaExecutionRoleArn": "arn:aws:iam::756624415062:role/pixtagLambdaRole649ac2b4-staging",
+        "Region": "ap-southeast-2",
+        "Arn": "arn:aws:lambda:ap-southeast-2:756624415062:function:pixtagamplifylambda-staging",
+        "Name": "pixtagamplifylambda-staging",
+        "LambdaExecutionRole": "pixtagLambdaRole649ac2b4-staging"
+      },
+      "lastPushDirHash": "SKC1VRV0w2CzLvwT2CgNtaFMGEQ="
+    }
+  }
+}

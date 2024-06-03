@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "aws_project_region": "ap-southeast-2",
+  "aws_cognito_region": "ap-southeast-2",
+  "aws_user_pools_id": "ap-southeast-2_KXNCeFb2V",
+  "aws_user_pools_web_client_id": "4v5eal374d2u2enc7oknv8l3kr",
+  "aws_cloud_logic_custom": [
+    {
+      "name": "pixtagapi",
+      "endpoint": "https://wnwp3hn26g.execute-api.ap-southeast-2.amazonaws.com/pixtag-test1/api/pixtag"
+    }
+  ]
+}

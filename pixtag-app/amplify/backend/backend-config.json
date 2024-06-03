@@ -1,0 +1,68 @@
+{
+  "auth": {
+    "pixtag": {
+      "customAuth": false,
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito",
+      "serviceType": "imported"
+    }
+  },
+  "function": {
+    "pixtagamplifylambda": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_auth_pixtag_nativeClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "pixtag"
+        }
+      ]
+    },
+    "AMPLIFY_auth_pixtag_userPoolId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "pixtag"
+        }
+      ]
+    },
+    "AMPLIFY_auth_pixtag_userPoolName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "pixtag"
+        }
+      ]
+    },
+    "AMPLIFY_auth_pixtag_webClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "pixtag"
+        }
+      ]
+    },
+    "AMPLIFY_function_pixtagamplifylambda_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "pixtagamplifylambda"
+        }
+      ]
+    },
+    "AMPLIFY_function_pixtagamplifylambda_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "pixtagamplifylambda"
+        }
+      ]
+    }
+  }
+}
