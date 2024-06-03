@@ -54,6 +54,36 @@ export const query2Call = async (thumbnail_url: string) => {
   }
 };
 
+export const query3Call = async (imageBase64: String) => {
+  const session = await fetchAuthSession();
+  if (session.tokens) {
+    console.log("id token", session.tokens.idToken);
+    console.log("access token", session.tokens.accessToken);
+  }
+
+  const url = new URL(
+    "https://wnwp3hn26g.execute-api.ap-southeast-2.amazonaws.com/pixtag-test1/api/pixtag"
+  );
+  const body = {
+    image_base64: imageBase64.split(',')[1],
+  };
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.tokens?.idToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return data;
+  } else {
+    throw new Error(response.statusText);
+  }
+}
+
 export const query1Call = async (tags: String, counts: String) => {
   const session = await fetchAuthSession();
   if (session.tokens) {
