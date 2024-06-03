@@ -1,6 +1,7 @@
 const AWS = require("aws-sdk");
 const dynamo = new AWS.DynamoDB.DocumentClient();
 const s3 = new AWS.S3();
+const sns = new AWS.SNS();
 
 exports.handler = async (event, context, callback) => {
   console.log("remaining time =", context.getRemainingTimeInMillis());
@@ -12,14 +13,12 @@ exports.handler = async (event, context, callback) => {
   const tableName = "pixtag_image_info";
   const s3ImageBucket = "pixtagimageupload";
   const s3ThumbnailBucket = "pixtagthumbnailbucket";
+  const snsTopicArn = 'arn:aws:sns:ap-southeast-2:756624415062:PixTagNotifications';
 
   try {
     switch (event.httpMethod) {
       case "GET":
-        if (
-          event.queryStringParameters &&
-          event.queryStringParameters.thumbnail_url
-        ) {
+        if (event.queryStringParameters && event.queryStringParameters.thumbnail_url) {
           let params = {
             TableName: tableName,
             ProjectionExpression: "s3_url",
@@ -46,7 +45,6 @@ exports.handler = async (event, context, callback) => {
 
             for (let thumbnailUrl of thumbnailUrls) {
               console.log(thumbnailUrl);
-              // Query DynamoDB to get the item for each thumbnail URL
               let params = {
                 TableName: tableName,
                 FilterExpression: "thumbnail_url = :thumbnail_url",
@@ -60,30 +58,16 @@ exports.handler = async (event, context, callback) => {
               for (let item of items) {
                 const s3Url = item.s3_url;
                 let currentTags = item.tags;
-                console.log(currentTags);
-                let updateExpression = "";
-                let expressionAttributeValues = {};
-
                 if (type === 1) {
-                  // Add tags
                   tags.forEach((tag) => {
                     if (!currentTags.includes(tag)) {
                       currentTags.push(tag);
                     }
                   });
-                } else if (type === 2) {
-                  // Remove tags
-                  // updateExpression = "DELETE tags :tags";
-                  // expressionAttributeValues[":tags"] = dynamo.createSet(tags);
-                  //     tags.forEach((tag) => {
-                  //   currentTags = currentTags.filter((t) => t.S == tag.S);
-                  // });
-                  currentTags = currentTags.filter(
-                    (item) => !tags.includes(item)
-                  );
+                } else if (type === 0) {
+                  currentTags = currentTags.filter((item) => !tags.includes(item));
                 }
-                console.log("currentTags");
-                // Update the item in DynamoDB
+
                 const updateParams = {
                   TableName: tableName,
                   Key: { s3_url: s3Url },
@@ -91,10 +75,26 @@ exports.handler = async (event, context, callback) => {
                   ExpressionAttributeValues: {
                     ":tags": currentTags,
                   },
-                  // UpdateExpression: updateExpression,
-                  // ExpressionAttributeValues: expressionAttributeValues,
                 };
                 await dynamo.update(updateParams).promise();
+
+                // Publish message to SNS
+                const message = {
+                  "default": `Image ${s3Url} updated`,
+                  "email": `The tags for image ${s3Url} have been ${type === 1 ? 'added' : 'removed'}: ${tags.join(', ')}`
+                };
+
+                await sns.publish({
+                  TopicArn: snsTopicArn,
+                  Message: JSON.stringify(message),
+                  MessageStructure: 'json',
+                  MessageAttributes: {
+                    'tags': {
+                      DataType: 'String.Array',
+                      StringValue: JSON.stringify(tags)
+                    }
+                  }
+                }).promise();
               }
             }
             body = {
@@ -103,7 +103,6 @@ exports.handler = async (event, context, callback) => {
           } else if (requestBody.tags) {
             const tags = requestBody.tags;
 
-            // Build the FilterExpression and ExpressionAttributeValues based on tags
             let filterExpression = "";
             let expressionAttributeValues = {};
 
@@ -116,9 +115,7 @@ exports.handler = async (event, context, callback) => {
                 filterExpression += " AND ";
               }
             }
-            console.log(filterExpression);
-            console.log(expressionAttributeValues);
-            // Query DynamoDB to find rows based on the tags
+
             const params = {
               TableName: tableName,
               ProjectionExpression: "thumbnail_url",
@@ -142,7 +139,6 @@ exports.handler = async (event, context, callback) => {
 
           for (let thumbnailUrl of thumbnailUrls) {
             console.log("thumbnailUrl");
-            // Query DynamoDB to get the S3 URL for each thumbnail URL
             let params = {
               TableName: tableName,
               ProjectionExpression: "s3_url",
@@ -158,23 +154,20 @@ exports.handler = async (event, context, callback) => {
               const s3Url = item.s3_url;
               console.log(s3Url);
               console.log("Start delete image");
-              // Delete the image from the S3 image bucket
               const s3ImageParams = {
                 Bucket: s3ImageBucket,
-                Key: s3Url.split("/").pop(), // Extracting the file name from the URL
+                Key: s3Url.split("/").pop(),
               };
               await s3.deleteObject(s3ImageParams).promise();
               console.log("end delete image");
               console.log("Start delete thumbnail");
-              // Delete the thumbnail from the S3 thumbnail bucket
               const s3ThumbnailParams = {
                 Bucket: s3ThumbnailBucket,
-                Key: thumbnailUrl.split("/").pop(), // Extracting the file name from the URL
+                Key: thumbnailUrl.split("/").pop(),
               };
               await s3.deleteObject(s3ThumbnailParams).promise();
               console.log("end delete image");
               console.log("Start delete table entry");
-              // Delete the entry from DynamoDB
               const deleteParams = {
                 TableName: tableName,
                 Key: {
@@ -184,6 +177,24 @@ exports.handler = async (event, context, callback) => {
               await dynamo.delete(deleteParams).promise();
               console.log("end delete table entry");
             }
+
+            // Publish message to SNS
+            const message = {
+              "default": `Image ${thumbnailUrl} deleted`,
+              "email": `The image with URL ${thumbnailUrl} has been deleted.`
+            };
+
+            await sns.publish({
+              TopicArn: snsTopicArn,
+              Message: JSON.stringify(message),
+              MessageStructure: 'json',
+              MessageAttributes: {
+                'tags': {
+                  DataType: 'String.Array',
+                  StringValue: JSON.stringify(thumbnailUrls)
+                }
+              }
+            }).promise();
           }
           body = { message: "Images and thumbnails deleted successfully" };
         } else {
@@ -196,13 +207,10 @@ exports.handler = async (event, context, callback) => {
         if (event.body) {
           const requestBody = JSON.parse(event.body);
           const thumbnailUrls = requestBody.url;
-          const type = requestBody.type; // 1 for add, 0 for remove
+          const type = requestBody.type;
           const tags = requestBody.tags;
-          console.log(tags);
 
           for (let thumbnailUrl of thumbnailUrls) {
-            console.log(thumbnailUrl);
-            // Query DynamoDB to get the item for each thumbnail URL
             let params = {
               TableName: tableName,
               FilterExpression: "thumbnail_url = :thumbnail_url",
@@ -216,27 +224,17 @@ exports.handler = async (event, context, callback) => {
             for (let item of items) {
               const s3Url = item.s3_url;
               let currentTags = item.tags;
-              console.log(currentTags);
-              let updateExpression = "";
-              let expressionAttributeValues = {};
 
               if (type === 1) {
-                // Add tags
                 tags.forEach((tag) => {
                   if (!currentTags.includes(tag)) {
                     currentTags.push(tag);
                   }
                 });
               } else if (type === 0) {
-                // Remove tags
-                // updateExpression = "DELETE tags :tags";
-                // expressionAttributeValues[":tags"] = dynamo.createSet(tags);
-                tags.forEach((tag) => {
-                  currentTags = currentTags.filter((t) => t.S !== tag.S);
-                });
+                currentTags = currentTags.filter((t) => !tags.includes(t));
               }
-              console.log("currentTags");
-              // Update the item in DynamoDB
+
               const updateParams = {
                 TableName: tableName,
                 Key: { s3_url: s3Url },
@@ -244,10 +242,26 @@ exports.handler = async (event, context, callback) => {
                 ExpressionAttributeValues: {
                   ":tags": currentTags,
                 },
-                // UpdateExpression: updateExpression,
-                // ExpressionAttributeValues: expressionAttributeValues,
               };
               await dynamo.update(updateParams).promise();
+
+              // Publish message to SNS
+              const message = {
+                "default": `Tags for image ${s3Url} ${type === 1 ? 'added' : 'removed'}`,
+                "email": `The tags for image ${s3Url} have been ${type === 1 ? 'added' : 'removed'}: ${tags.join(', ')}`
+              };
+
+              await sns.publish({
+                TopicArn: snsTopicArn,
+                Message: JSON.stringify(message),
+                MessageStructure: 'json',
+                MessageAttributes: {
+                  'tags': {
+                    DataType: 'String.Array',
+                    StringValue: JSON.stringify(tags)
+                  }
+                }
+              }).promise();
             }
           }
           body = {
