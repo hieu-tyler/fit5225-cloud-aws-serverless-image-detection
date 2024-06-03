@@ -168,7 +168,7 @@ def lambda_handler(event, context):
     CFG = get_config(config_path)
     Weights = get_weights(weights_path)
 
-    image_base64 = event.get('image')
+    image_base64 = event.get('image_base64')
     if image_base64:
         image_data = base64.b64decode(image_base64)
         nparr = np.frombuffer(image_data, np.uint8)
@@ -182,29 +182,16 @@ def lambda_handler(event, context):
         
         # Perform prediction
         result = do_prediction(image, nets, Lables)
+
+        print(result)
         
         # Obtain tag
-        found_tags = [str(item) for item in result]
-        
-        # Get S3 object
-        dynamodb_client = boto3.client('dynamodb')
-        response = dynamodb_client.scan(TableName=TABLE_NAME)
+        found_tags = [str(item) for item in result] or []
 
-        items = response.get('Items', [])
-        found_s3_thumbnail = []
-        for item in items:
-            found_tag_set = set(found_tags)
-            dynamodb_tags = item.get('tags')
-            if dynamodb_tags:
-                dynamodb_tags = dynamodb_tags.get('L')
-                dynamodb_tags = [tag_dict.get('S') for tag_dict in dynamodb_tags]
-            s3_thumbnail_url = item.get('thumbnail_url')
-            print(set(dynamodb_tags), set(found_tag_set))
-            if set(dynamodb_tags).intersection(found_tag_set) and s3_thumbnail_url:
-                found_s3_thumbnail.append(s3_thumbnail_url.get('S'))
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "found_thumbnail": found_s3_thumbnail,
+            # "found_thumbnail": found_s3_thumbnail,
+            "found_tags": found_tags
         }),
     }

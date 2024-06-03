@@ -10,8 +10,11 @@ exports.handler = async (event, context, callback) => {
   let statusCode = "200";
   const headers = { "Content-Type": "application/json" };
   const tableName = "pixtag_image_info";
+  const lambda = new AWS.Lambda();
   const s3ImageBucket = "pixtagimageupload";
   const s3ThumbnailBucket = "pixtagthumbnailbucket";
+  
+  const IMAGE_DETECTION_LAMBDA = "image_detection_lambda";
 
   try {
     switch (event.httpMethod) {
@@ -129,7 +132,52 @@ exports.handler = async (event, context, callback) => {
             const response = await dynamo.scan(params).promise();
             body = response.Items.map((item) => item.thumbnail_url);
           }
-        } else {
+        } else if (event.image_base64) {
+        const imageBase64 = event.image_base64;
+        const detectParams = {
+          FunctionName: IMAGE_DETECTION_LAMBDA, // Replace with your image detection Lambda function name
+          Payload: JSON.stringify({ image_base64: imageBase64 }),
+        };
+        const detectResponse = await lambda.invoke(detectParams).promise();
+        const detectionResult = JSON.parse(detectResponse.Payload);
+
+        console.log("detectionResult", detectionResult)
+
+        // Handle the response from the detection Lambda function
+        const parseBody = JSON.parse(detectionResult.body)
+
+        console.log("parseBody: ", parseBody)
+
+        
+        const foundS3Thumbnails = [];
+        
+        const foundTags = parseBody.found_tags.map(tag => tag.trim());
+
+        console.log("foundTags: ", foundTags)
+
+        // Scan DynamoDB for matching tags
+        const scanParams = {
+          TableName: tableName,
+        };
+        const dynamoResponse = await dynamo.scan(scanParams).promise();
+
+        console.log("dbResponse: ", dynamoResponse)
+
+        dynamoResponse.Items.forEach((item) => {
+          const dynamoTags = item.tags.map(tag => tag.replace('\r', ''));
+          const s3ThumbnailUrl = item.thumbnail_url;
+          console.log(dynamoTags)
+          console.log(foundTags)
+          if (dynamoTags && s3ThumbnailUrl) {
+            const dynamoTagSet = new Set(dynamoTags);
+            const foundTagSet = new Set(foundTags);
+            if ([...dynamoTagSet].some(tag => foundTagSet.has(tag))) {
+              foundS3Thumbnails.push(s3ThumbnailUrl);
+            }
+          }
+        });
+        body = foundS3Thumbnails;
+      } else {
           statusCode = "400";
           body = { error: "Invalid request" };
         }
