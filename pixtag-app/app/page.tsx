@@ -11,6 +11,7 @@ import './styles.css';
 
 import Query2 from './query2';
 import Query1 from './query1';
+import Query3 from './query3';
 import Query4 from './query4';
 import Query5 from './query5';
 import TagSubscription from './tagsubscription';
@@ -25,6 +26,7 @@ function App({ Component, pageProps }: AppProps) {
 
 const [showQuery1, setShowQuery1] = useState(false);
 const [showQuery2, setShowQuery2] = useState(false);
+const [showQuery3, setShowQuery3] = useState(false);
 const [showQuery4, setShowQuery4] = useState(false);
 const [showQuery5, setShowQuery5] = useState(false);
 const [showtagSubscription, setShowTagSubscription] = useState(false);
@@ -35,6 +37,9 @@ const handleShowQuery1 = () => {
 
   const handleShowQuery2 = () => {
     setShowQuery2(!showQuery2);
+  };
+  const handleShowQuery3 = () => {
+    setShowQuery3(!showQuery3);
   };
   const handleShowQuery4 = () => {
     setShowQuery4(!showQuery4);
@@ -65,6 +70,10 @@ const handleShowQuery1 = () => {
           <button onClick={handleShowQuery1}>Query 1</button>
           <br></br>
           {showQuery1 && <Query1 />}
+          <br></br>
+          <button onClick={handleShowQuery3}>Query 3</button>
+          <br></br>
+          {showQuery3 && <Query3/>}
           <br></br>
           <button onClick={handleShowQuery4}>Query 4</button>
           <br></br>
