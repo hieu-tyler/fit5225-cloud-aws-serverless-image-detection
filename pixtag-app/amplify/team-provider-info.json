@@ -1,0 +1,31 @@
+{
+  "staging": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-pixtag-staging-48a71-authRole",
+      "UnauthRoleArn": "arn:aws:iam::756624415062:role/amplify-pixtag-staging-48a71-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::756624415062:role/amplify-pixtag-staging-48a71-authRole",
+      "Region": "ap-southeast-2",
+      "DeploymentBucketName": "amplify-pixtag-staging-48a71-deployment",
+      "UnauthRoleName": "amplify-pixtag-staging-48a71-unauthRole",
+      "StackName": "amplify-pixtag-staging-48a71",
+      "StackId": "arn:aws:cloudformation:ap-southeast-2:756624415062:stack/amplify-pixtag-staging-48a71/431bef50-1fc4-11ef-9b54-0a371fcd2c3b",
+      "AmplifyAppId": "dvevuhpe04me2"
+    },
+    "categories": {
+      "auth": {
+        "pixtag": {
+          "nativeClientId": "4v5eal374d2u2enc7oknv8l3kr",
+          "userPoolId": "ap-southeast-2_KXNCeFb2V",
+          "userPoolName": "pixtag-user-pool",
+          "webClientId": "4v5eal374d2u2enc7oknv8l3kr"
+        }
+      },
+      "function": {
+        "pixtagamplifylambda": {
+          "deploymentBucketName": "amplify-pixtag-staging-48a71-deployment",
+          "s3Key": "amplify-builds/pixtagamplifylambda-56785152592b3977576b-build.zip"
+        }
+      }
+    }
+  }
+}
