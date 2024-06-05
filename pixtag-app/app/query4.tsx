@@ -1,12 +1,13 @@
 import { query4Call } from "@/src/handleapicalls";
 import { useState } from "react";
 
+// Define the Query4 component
 const Query4 = () => {
   const [thumbnailUrls, setThumbnailUrls] = useState("");
-  //const [type, setType] = useState("");
   const [tags, setTags] = useState("");
   const [responseMessage, setResponseMessage] = useState("");
 
+  // Function to handle the query when the button is clicked
   const handleQuery4 = async (type: string) => {
     try {
       const data = await query4Call(thumbnailUrls, type, tags);

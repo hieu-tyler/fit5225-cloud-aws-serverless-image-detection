@@ -1,6 +1,7 @@
 import { query3Call } from "@/src/handleapicalls";
 import { useState } from "react";
 
+// Define the Query3 component
 const Query3 = () => {
   const [imageBase64, setImageBase64] = useState("");
   const [responseMessage, setResponseMessage] = useState("");
@@ -17,10 +18,15 @@ const Query3 = () => {
     }
   };
 
+  // Function to handle the query when the button is clicked
   const handleQuery3 = async () => {
     try {
       const data = await query3Call(imageBase64);
-      setResponseMessage(data.map((item: String) => item));
+      if (data.length === 0) {
+        setResponseMessage("No images found");
+      } else {
+        setResponseMessage(data.map((item: string) => item));
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
       setResponseMessage("Error fetching data");

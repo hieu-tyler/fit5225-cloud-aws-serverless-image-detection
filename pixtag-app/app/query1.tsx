@@ -1,33 +1,25 @@
 import { query1Call } from "@/src/handleapicalls";
 import { useState } from "react";
 
-
-
-const extractImageNumber = (url: string) => {
-  const regex = /(\d+)_thumbnail\.jpg$/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-};
-
 const Query1 = () => {
   const [tags, setTags] = useState("");
   const [counts, setCounts] = useState("");
-  //const [responseMessage, setResponseMessage] = useState("");
   const [responseMessage, setResponseMessage] = useState<string[]>([]);
-  const [imageLink, setImageLink] = useState("");
 
+  // Function to handle the query
   const handleQuery1 = async () => {
     try {
       const data = await query1Call(tags, counts);
-      console.log(data);
-      //setResponseMessage(data[0]);
-      setResponseMessage(data.map((item: String) => item));
+      if (data.length === 0) {
+        setResponseMessage(["No images found"]);
+      } else {
+        setResponseMessage(data.map((item: string) => item));
+      }
     } catch (error) {
-      console.error("Failed to fetch data:", error);
       setResponseMessage(["Error in fetching data"]);
     }
   };
-  
+
   return (
     <div>
       <input
@@ -47,16 +39,13 @@ const Query1 = () => {
       <button onClick={handleQuery1}>Find image</button>
       <br></br>
       {responseMessage && (
-        
-          <ul>
-            {responseMessage.map((link, index) => (
-              <li key={index}>
-                <a href={link}>{link}</a>
-              </li>
-            ))}
-          </ul>
-          
-        
+        <ul>
+          {responseMessage.map((link, index) => (
+            <li key={index}>
+              <a href={link}>{link}</a>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

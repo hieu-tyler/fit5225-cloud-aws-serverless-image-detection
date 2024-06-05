@@ -1,15 +1,15 @@
 import { tagSubscription } from "@/src/handleapicalls";
 import { useState } from "react";
 
+// Define the TagSubscription component
 const TagSubscription = () => {
   const [email, setEmail] = useState("");
   const [tags, setTags] = useState("");
   const [responseMessage, setResponseMessage] = useState("");
-
+  // Function to handle the tag subscription when the button is clicked
   const handleTagSubscription = async () => {
     try {
       const data = await tagSubscription(email, tags);
-      console.log(data);
       setResponseMessage(data.message);
     } catch (error) {
       console.error("Failed to fetch data:", error);

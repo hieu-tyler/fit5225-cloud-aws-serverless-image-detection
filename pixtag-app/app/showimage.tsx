@@ -1,13 +1,14 @@
 import { StorageImage } from "@aws-amplify/ui-react-storage";
-
 import { useState } from "react";
 
+// Function to extract the image number from a given URL
 const extractImageNumber = (url: string) => {
   const regex = /(\d+)_thumbnail\.jpg$/;
   const match = url.match(regex);
   return match ? match[1] : null;
 };
 
+// Define the ShowImage component
 const ShowImage = () => {
   const [imageLink, setImageLink] = useState("");
   const [imageKey, setImageKey] = useState("");
